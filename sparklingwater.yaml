@@ -1,0 +1,89 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: sparklingwater-cluster-svc
+  labels:
+    version: 1.0.0
+spec:
+  ports:
+  - port: 8080
+    targetPort: 8080
+    protocol: TCP
+    name: webui
+  - port: 7077
+    targetPort: 7077
+    protocol: TCP
+    name: masterport
+  selector:
+    app: sparklingwater-master-pod
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sparklingwater-external
+  labels:
+    version: 1.0.0
+spec:
+  selector:
+    app: sparklingwater-master-pod
+  ports:
+    - name: sparkwebui
+      port: 8080
+      targetPort: 8080
+      nodePort: 32080
+    - name: h2o
+      port: 54325
+      targetPort: 54325
+      nodePort: 32400
+  type: NodePort
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sparklingwater-master-deployment
+spec:
+  selector:
+    matchLabels:
+      app: sparklingwater-master-pod
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: sparklingwater-master-pod
+        group: sparklingwater
+    spec:
+      containers:
+      - name: sparklingwater-master
+        image: registry.gitlab.com/piripinui/edt/sparklingwater-master:v1
+        ports:
+        - containerPort: 8080
+        - containerPort: 7077
+        - containerPort: 45222
+        - containerPort: 54325
+      imagePullSecrets:
+      - name: gitlabcreds
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sparklingwater-worker-deployment
+spec:
+  selector:
+    matchLabels:
+      app: sparklingwater-worker-pod
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: sparklingwater-worker-pod
+        group: sparklingwater
+    spec:
+      containers:
+      - name: sparklingwater-worker
+        image: registry.gitlab.com/piripinui/edt/sparklingwater-worker:v1
+        env:
+          - name: SPARK_MASTER_HOST
+            value: "$(SPARKLINGWATER_CLUSTER_SVC_SERVICE_HOST)"
+      imagePullSecrets:
+      - name: gitlabcreds
+---
