@@ -6,8 +6,7 @@ WORKDIR /app/src
 RUN tar -xvzf spark-2.4.0-bin-hadoop2.7.tgz
 RUN unzip sparkling-water-2.4.2.zip
 
-# Overwrite default command for starting the Spark cluster.
-COPY src/launch-spark-cloud.sh /app/src/sparkling-water-2.4.2/bin
+# Overwrite default commands for starting the Spark cluster.
 COPY src/launch-master.sh /app/src/sparkling-water-2.4.2/bin
 COPY src/spark-daemon.sh /app/src/spark-2.4.0-bin-hadoop2.7/sbin
 
