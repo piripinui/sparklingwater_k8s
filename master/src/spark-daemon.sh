@@ -239,4 +239,7 @@ case $option in
 
 esac
 
+# This part of the original script has been modified to stop the process completing when run
+# via Docker or Kubernetes. Basically this subprocess continues to run because it always
+# shows log file output for the master process.
 tail -f $log
