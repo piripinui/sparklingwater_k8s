@@ -1,3 +1,8 @@
+# This service is used for communications between the Spark master and any workers. In the worker
+# deployment configuration below the name of this service is used as the address for the SPARK_MASTER_HOST
+# environment variable which tells the workers which service they should contact to register themselves with
+# the master. Doing it this way avoids having the workers needing to know the specific hostname or IP
+# address of the master pod, which may change if the master pod crashes or restarts.
 apiVersion: v1
 kind: Service
 metadata:
@@ -21,6 +26,8 @@ spec:
   selector:
     app: sparklingwater-master-pod
 ---
+# This service exposes certain ports outside of the cluster, specifically those providing the web
+# interfaces for the Spark cluster and H2O.
 apiVersion: v1
 kind: Service
 metadata:
@@ -41,6 +48,8 @@ spec:
       nodePort: 32400
   type: NodePort
 ---
+# This is the definition of the master deployment. It uses a Sparkling Water Docker image that starts
+# Spark in master mode. There is only 1 master pod created by this deployment.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -61,7 +70,10 @@ spec:
         image: registry.gitlab.com/piripinui/edt/sparklingwater-master:v1
         # It is necessary to define the master host to an address that is reachable by worker pods
         # and the master pod itself. Leaving this as "localhost" or the name of the cluster Service
-        # will not work (the master pod will fail to start up).
+        # will not work (the master pod will fail to start up). Hence we use the pod's IP address,
+        # even though the workers always use the cluster service defined above to communicate with
+        # the master. In other words, this is only necessary because of the way the master seems to
+        # work.
         env:
         - name: SPARK_MASTER_HOST
           valueFrom:
@@ -75,6 +87,8 @@ spec:
       imagePullSecrets:
       - name: gitlabcreds
 ---
+# This is the definition of the worker deployment. It uses a Sparkling Water Docker image that
+# starts Spark in worker mode. It creates 3 workers.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -93,7 +107,8 @@ spec:
       containers:
       - name: sparklingwater-worker
         image: registry.gitlab.com/piripinui/edt/sparklingwater-worker:v1
-        # The worker pods communicate with the master pod via the sparklingwater-cluster-svc service.
+        # The worker pods communicate with the master pod via the sparklingwater-cluster-svc service
+        # (see above).
         env:
         - name: SPARK_MASTER_HOST
           value: "sparklingwater-cluster-svc"
