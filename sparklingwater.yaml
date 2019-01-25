@@ -13,7 +13,11 @@ spec:
   - port: 7077
     targetPort: 7077
     protocol: TCP
-    name: masterport
+    name: masterport-tcp
+  - port: 7077
+    targetPort: 7077
+    protocol: UDP
+    name: masterport-udp
   selector:
     app: sparklingwater-master-pod
 ---
@@ -55,6 +59,14 @@ spec:
       containers:
       - name: sparklingwater-master
         image: registry.gitlab.com/piripinui/edt/sparklingwater-master:v1
+        # It is necessary to define the master host to an address that is reachable by worker pods
+        # and the master pod itself. Leaving this as "localhost" or the name of the cluster Service
+        # will not work (the master pod will fail to start up).
+        env:
+        - name: SPARK_MASTER_HOST
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
         ports:
         - containerPort: 8080
         - containerPort: 7077
@@ -71,7 +83,7 @@ spec:
   selector:
     matchLabels:
       app: sparklingwater-worker-pod
-  replicas: 1
+  replicas: 3
   template:
     metadata:
       labels:
@@ -81,9 +93,12 @@ spec:
       containers:
       - name: sparklingwater-worker
         image: registry.gitlab.com/piripinui/edt/sparklingwater-worker:v1
+        # The worker pods communicate with the master pod via the sparklingwater-cluster-svc service.
         env:
-          - name: SPARK_MASTER_HOST
-            value: "$(SPARKLINGWATER_CLUSTER_SVC_SERVICE_HOST)"
+        - name: SPARK_MASTER_HOST
+          value: "sparklingwater-cluster-svc"
+        - name: SPARK_MASTER_IP
+          value: "$(SPARKLINGWATER_CLUSTER_SVC_HOSTNAME)"
       imagePullSecrets:
       - name: gitlabcreds
 ---
