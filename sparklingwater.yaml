@@ -43,8 +43,8 @@ spec:
       targetPort: 8080
       nodePort: 32080
     - name: h2o
-      port: 54325
-      targetPort: 54325
+      port: 54323
+      targetPort: 54323
       nodePort: 32400
   type: NodePort
 ---
@@ -83,7 +83,7 @@ spec:
         - containerPort: 8080
         - containerPort: 7077
         - containerPort: 45222
-        - containerPort: 54325
+        - containerPort: 54323
       imagePullSecrets:
       - name: gitlabcreds
 ---
